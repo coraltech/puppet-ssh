@@ -1,7 +1,7 @@
 
-class ssh::firewall ( $port = 22 ) {
+class ssh::firewall ( $port = $ssh::params::port ) inherits ssh::params {
 
-  firewall { "150 - INPUT allow new SSH connections":
+  firewall { "150 INPUT Allow new SSH connections":
     action => accept,
     chain => 'INPUT',
     state => 'NEW',

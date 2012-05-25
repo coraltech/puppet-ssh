@@ -10,8 +10,13 @@
 #
 # Parameters:
 #
-#   $port        = 22
-#   $user_groups = [ 'admin' ]
+#   $port                         = $ssh::params::port,
+#   $user_groups                  = $ssh::params::user_groups,
+#   $sshd_config                  = $ssh::params::sshd_config,
+#   $ssh_init_script              = $ssh::params::ssh_init_script,
+#   $open_ssh_server_version      = $ssh::params::open_ssh_server_version,
+#   $libcurl4_openssl_dev_version = $ssh::params::libcurl4_openssl_dev_version,
+#   $ssh_import_id_version        = $ssh::params::ssh_import_id_version
 #
 # Actions:
 #
@@ -27,9 +32,17 @@
 #   }
 #
 # [Remember: No empty lines between comments and class definition]
-class ssh ( $port = 22, $user_groups = [ 'admin' ] ) {
+class ssh (
 
-  include ssh::params
+  $port                         = $ssh::params::port,
+  $user_groups                  = $ssh::params::user_groups,
+  $sshd_config                  = $ssh::params::sshd_config,
+  $ssh_init_script              = $ssh::params::ssh_init_script,
+  $open_ssh_server_version      = $ssh::params::open_ssh_server_version,
+  $libcurl4_openssl_dev_version = $ssh::params::libcurl4_openssl_dev_version,
+  $ssh_import_id_version        = $ssh::params::ssh_import_id_version
+
+) inherits ssh::params {
 
   #-----------------------------------------------------------------------------
 
@@ -40,33 +53,33 @@ class ssh ( $port = 22, $user_groups = [ 'admin' ] ) {
   #-----------------------------------------------------------------------------
   # Install
 
-  if ! $ssh::params::open_ssh_server_version {
+  if ! $open_ssh_server_version {
     fail('Open SSH version must be defined')
   }
   package { 'openssh-server':
-    ensure => $ssh::params::open_ssh_server_version,
+    ensure => $open_ssh_server_version,
   }
 
-  if ! $ssh::params::libcurl4_openssl_dev_version {
+  if ! $libcurl4_openssl_dev_version {
     fail('Libcurl Open SSL dev version must be defined')
   }
   package { 'libcurl4-openssl-dev':
-    ensure => $ssh::params::libcurl4_openssl_dev_version,
+    ensure => $libcurl4_openssl_dev_version,
   }
 
-  if $ssh::params::ssh_import_id_version {
+  if $ssh_import_id_version {
     package { 'ssh-import-id':
-      ensure => $ssh::params::ssh_import_id_version,
+      ensure => $ssh_import_id_version,
     }
   }
 
   #-----------------------------------------------------------------------------
   # Configure
 
-  if ! ( $ssh::params::sshd_config or $ssh::params::ssh_init_script ) {
+  if ! ( $sshd_config or $ssh_init_script ) {
     fail('SSH configuration file and init script must be defined')
   }
-  file { $ssh::params::sshd_config:
+  file { $sshd_config:
     owner    => "root",
     group    => "root",
     mode     => 644,
@@ -74,9 +87,9 @@ class ssh ( $port = 22, $user_groups = [ 'admin' ] ) {
   }
 
   exec { "reload-ssh":
-    command     => "${ssh::params::ssh_init_script} reload",
+    command     => "${ssh_init_script} reload",
     refreshonly => true,
-    subscribe   => File[$ssh::params::sshd_config]
+    subscribe   => File[$sshd_config]
   }
 
   #-----------------------------------------------------------------------------

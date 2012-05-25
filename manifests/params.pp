@@ -3,6 +3,9 @@ class ssh::params {
 
   #-----------------------------------------------------------------------------
 
+  $port            = 22
+  $user_groups     = [ 'admin' ]
+
   $sshd_config     = '/etc/ssh/sshd_config'
   $ssh_init_script = '/etc/init.d/ssh'
 
