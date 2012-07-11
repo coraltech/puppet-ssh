@@ -11,6 +11,10 @@
 # Parameters:
 #
 #   $port                         = $ssh::params::port,
+#   $allow_root_login             = $ssh::params::allow_root_login,
+#   $allow_password_auth          = $ssh::params::allow_password_auth,
+#   $permit_empty_passwords       = $ssh::params::permit_empty_passwords,
+#   $users                        = $ssh::params::users,
 #   $user_groups                  = $ssh::params::user_groups,
 #   $sshd_config                  = $ssh::params::sshd_config,
 #   $ssh_init_script              = $ssh::params::ssh_init_script,
@@ -35,6 +39,10 @@
 class ssh (
 
   $port                         = $ssh::params::port,
+  $allow_root_login             = $ssh::params::allow_root_login,
+  $allow_password_auth          = $ssh::params::allow_password_auth,
+  $permit_empty_passwords       = $ssh::params::permit_empty_passwords,
+  $users                        = $ssh::params::users,
   $user_groups                  = $ssh::params::user_groups,
   $sshd_config                  = $ssh::params::sshd_config,
   $ssh_init_script              = $ssh::params::ssh_init_script,
@@ -99,6 +107,6 @@ class ssh (
     'ssh':
       enable    => true,
       ensure    => running,
-      subscribe => Package['openssh-server'];
+      subscribe => Package['openssh-server'],
   }
 }
