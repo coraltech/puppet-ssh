@@ -24,7 +24,7 @@ LogLevel INFO
 
 # Authentication:
 LoginGraceTime 120
-PermitRootLogin <%= allow_root_login ? 'yes' : 'no' %>
+PermitRootLogin <%= allow_root_login == 'true' ? 'yes' : 'no' %>
 StrictModes yes
 
 RSAAuthentication yes
@@ -41,14 +41,14 @@ HostbasedAuthentication no
 #IgnoreUserKnownHosts yes
 
 # To enable empty passwords, change to yes (NOT RECOMMENDED)
-PermitEmptyPasswords <%= permit_empty_passwords ? 'yes' : 'no' %>
+PermitEmptyPasswords <%= permit_empty_passwords == 'true' ? 'yes' : 'no' %>
 
 # Change to yes to enable challenge-response passwords (beware issues with
 # some PAM modules and threads)
 ChallengeResponseAuthentication no
 
 # Change to no to disable tunnelled clear text passwords
-PasswordAuthentication <%= allow_password_auth ? 'yes' : 'no' %>
+PasswordAuthentication <%= allow_password_auth == 'true' ? 'yes' : 'no' %>
 
 # Kerberos options
 #KerberosAuthentication no
@@ -84,7 +84,7 @@ Subsystem sftp /usr/lib/openssh/sftp-server
 # If you just want the PAM account and session checks to run without
 # PAM authentication, then enable this but set PasswordAuthentication
 # and ChallengeResponseAuthentication to 'no'.
-UsePAM <%= permit_empty_passwords ? 'no' : 'yes' %>
+UsePAM <%= permit_empty_passwords == 'true' ? 'no' : 'yes' %>
 
 # All user groups that may log in to this machine.
 <% user_groups.each do |group| -%>

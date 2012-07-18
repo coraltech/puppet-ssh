@@ -1,0 +1,13 @@
+{
+  "ssh_openssh_package_ensure" : "present",
+  "ssh_openssh_service_ensure" : "running",
+  "ssh_libcurl_openssl_dev_ensure" : "present",
+  "ssh_import_id_ensure" : "present",
+  "ssh_configure_firewall" : "true",
+  "ssh_port" : "22",
+  "ssh_allow_root_login" : "false",
+  "ssh_allow_password_auth" : "false",
+  "ssh_permit_empty_passwords" : "false",
+  "ssh_users" : [],
+  "ssh_user_groups" : [ "admin" ]
+}

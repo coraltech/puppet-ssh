@@ -2,25 +2,13 @@
 #
 #   This module manages the SSH service.
 #
-#   Adrian Webb <adrian.webb@coraltg.com>
+#   Adrian Webb <adrian.webb@coraltech.net>
 #   2012-05-22
 #
 #   Tested platforms:
 #    - Ubuntu 12.04
 #
-# Parameters:
-#
-#   $port                         = $ssh::params::port,
-#   $allow_root_login             = $ssh::params::allow_root_login,
-#   $allow_password_auth          = $ssh::params::allow_password_auth,
-#   $permit_empty_passwords       = $ssh::params::permit_empty_passwords,
-#   $users                        = $ssh::params::users,
-#   $user_groups                  = $ssh::params::user_groups,
-#   $sshd_config                  = $ssh::params::sshd_config,
-#   $ssh_init_script              = $ssh::params::ssh_init_script,
-#   $open_ssh_server_version      = $ssh::params::open_ssh_server_version,
-#   $libcurl4_openssl_dev_version = $ssh::params::libcurl4_openssl_dev_version,
-#   $ssh_import_id_version        = $ssh::params::ssh_import_id_version
+# Parameters: (see <examples/params.json> for Hiera configurations)
 #
 # Actions:
 #
@@ -38,75 +26,94 @@
 # [Remember: No empty lines between comments and class definition]
 class ssh (
 
-  $port                         = $ssh::params::port,
-  $allow_root_login             = $ssh::params::allow_root_login,
-  $allow_password_auth          = $ssh::params::allow_password_auth,
-  $permit_empty_passwords       = $ssh::params::permit_empty_passwords,
-  $users                        = $ssh::params::users,
-  $user_groups                  = $ssh::params::user_groups,
-  $sshd_config                  = $ssh::params::sshd_config,
-  $ssh_init_script              = $ssh::params::ssh_init_script,
-  $open_ssh_server_version      = $ssh::params::open_ssh_server_version,
-  $libcurl4_openssl_dev_version = $ssh::params::libcurl4_openssl_dev_version,
-  $ssh_import_id_version        = $ssh::params::ssh_import_id_version
+  $package                     = $ssh::params::os_openssh_package,
+  $package_ensure              = $ssh::params::openssh_package_ensure,
+  $service                     = $ssh::params::os_openssh_service,
+  $service_ensure              = $ssh::params::openssh_service_ensure,
+  $libcurl_openssl_dev_package = $ssh::params::os_libcurl_openssl_dev_package,
+  $libcurl_openssl_dev_ensure  = $ssh::params::libcurl_openssl_dev_ensure,
+  $ssh_import_id_package       = $ssh::params::os_ssh_import_id_package,
+  $ssh_import_id_ensure        = $ssh::params::ssh_import_id_ensure,
+  $configure_firewall          = $ssh::params::configure_firewall,
+  $port                        = $ssh::params::port,
+  $allow_root_login            = $ssh::params::allow_root_login,
+  $allow_password_auth         = $ssh::params::allow_password_auth,
+  $permit_empty_passwords      = $ssh::params::permit_empty_passwords,
+  $users                       = $ssh::params::users,
+  $user_groups                 = $ssh::params::user_groups,
+  $sshd_config_file            = $ssh::params::os_sshd_config_file,
+  $init_bin                    = $ssh::params::os_init_bin,
+  $sshd_config_template        = $ssh::params::os_sshd_config_template,
 
 ) inherits ssh::params {
 
   #-----------------------------------------------------------------------------
+  # Installation
 
-  if $port > 0 {
-    class { 'ssh::firewall': port => $port }
-  }
-
-  #-----------------------------------------------------------------------------
-  # Install
-
-  if ! $open_ssh_server_version {
+  if ! ( $package and $package_ensure ) {
     fail('Open SSH version must be defined')
   }
   package { 'openssh-server':
-    ensure => $open_ssh_server_version,
+    name   => $package,
+    ensure => $package_ensure,
   }
 
-  if ! $libcurl4_openssl_dev_version {
+  if ! ( $libcurl_openssl_dev_package and $libcurl_openssl_dev_ensure ) {
     fail('Libcurl Open SSL dev version must be defined')
   }
   package { 'libcurl4-openssl-dev':
-    ensure => $libcurl4_openssl_dev_version,
+    name    => $libcurl_openssl_dev_package,
+    ensure  => $libcurl_openssl_dev_ensure,
+    require => Package['openssh-server'],
   }
 
-  if $ssh_import_id_version {
+  if $ssh_import_id_package and $ssh_import_id_ensure {
     package { 'ssh-import-id':
-      ensure => $ssh_import_id_version,
+      name    => $ssh_import_id_package,
+      ensure  => $ssh_import_id_ensure,
+      require => Package['openssh-server'],
     }
   }
 
   #-----------------------------------------------------------------------------
-  # Configure
+  # Configuration
 
-  if ! ( $sshd_config or $ssh_init_script ) {
+  if ! ( $sshd_config_file and $init_bin ) {
     fail('SSH configuration file and init script must be defined')
   }
-  file { $sshd_config:
+  file { 'sshd-config-file':
+    path     => $sshd_config_file,
     owner    => "root",
     group    => "root",
     mode     => 644,
-    content  => template('ssh/sshd_config.erb'),
+    content  => template($sshd_config_template),
+    require  => Package['openssh-server'],
   }
 
   exec { "reload-ssh":
-    command     => "${ssh_init_script} reload",
+    command     => "${init_bin} reload",
     refreshonly => true,
-    subscribe   => File[$sshd_config]
+    subscribe   => File['sshd-config-file']
+  }
+
+  if $configure_firewall == 'true' and $port > 0 {
+    firewall { "150 INPUT Allow new SSH connections":
+      action  => accept,
+      chain   => 'INPUT',
+      state   => 'NEW',
+      proto   => 'tcp',
+      dport   => $port,
+      require => Package['openssh-server'],
+    }
   }
 
   #-----------------------------------------------------------------------------
-  # Manage
+  # Services
 
-  service {
-    'ssh':
-      enable    => true,
-      ensure    => running,
-      subscribe => Package['openssh-server'],
+  service { 'ssh':
+    name    => $service,
+    ensure  => $service_ensure,
+    enable  => true,
+    require => Package['openssh-server'],
   }
 }
