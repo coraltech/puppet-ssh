@@ -1,10 +1,12 @@
 
 class ssh::params {
 
+  include ssh::default
+
   #-----------------------------------------------------------------------------
   # General configurations
 
-  if $::hiera_exists {
+  if $::hiera_ready {
     $openssh_package_ensure     = hiera('ssh_openssh_package_ensure', $ssh::default::openssh_package_ensure)
     $openssh_service_ensure     = hiera('ssh_openssh_service_ensure', $ssh::default::openssh_service_ensure)
     $libcurl_openssl_dev_ensure = hiera('ssh_libcurl_openssl_dev_ensure', $ssh::default::libcurl_openssl_dev_ensure)
