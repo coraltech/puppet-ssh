@@ -26,14 +26,17 @@
 # [Remember: No empty lines between comments and class definition]
 class ssh (
 
-  $package                     = $ssh::params::os_openssh_package,
-  $package_ensure              = $ssh::params::openssh_package_ensure,
-  $service                     = $ssh::params::os_openssh_service,
-  $service_ensure              = $ssh::params::openssh_service_ensure,
-  $libcurl_openssl_dev_package = $ssh::params::os_libcurl_openssl_dev_package,
-  $libcurl_openssl_dev_ensure  = $ssh::params::libcurl_openssl_dev_ensure,
-  $ssh_import_id_package       = $ssh::params::os_ssh_import_id_package,
-  $ssh_import_id_ensure        = $ssh::params::ssh_import_id_ensure,
+  $package                     = $ssh::params::package,
+  $package_ensure              = $ssh::params::package_ensure,
+  $service                     = $ssh::params::service,
+  $service_ensure              = $ssh::params::service_ensure,
+  $dev_packages                = $ssh::params::dev_packages,
+  $dev_ensure                  = $ssh::params::dev_ensure,
+  $extra_packages              = $ssh::params::extra_packages,
+  $extra_ensure                = $ssh::params::extra_ensure,
+  $init_bin                    = $ssh::params::init_bin,
+  $config_file                 = $ssh::params::config_file,
+  $config_template             = $ssh::params::config_template,
   $configure_firewall          = $ssh::params::configure_firewall,
   $port                        = $ssh::params::port,
   $allow_root_login            = $ssh::params::allow_root_login,
@@ -41,59 +44,49 @@ class ssh (
   $permit_empty_passwords      = $ssh::params::permit_empty_passwords,
   $users                       = $ssh::params::users,
   $user_groups                 = $ssh::params::user_groups,
-  $sshd_config_file            = $ssh::params::os_sshd_config_file,
-  $init_bin                    = $ssh::params::os_init_bin,
-  $sshd_config_template        = $ssh::params::os_sshd_config_template,
 
 ) inherits ssh::params {
 
   #-----------------------------------------------------------------------------
   # Installation
 
-  if ! ( $package and $package_ensure ) {
-    fail('Open SSH version must be defined')
-  }
-  package { 'openssh-server':
+  package { 'ssh':
     name   => $package,
     ensure => $package_ensure,
   }
 
-  if ! ( $libcurl_openssl_dev_package and $libcurl_openssl_dev_ensure ) {
-    fail('Libcurl Open SSL dev version must be defined')
-  }
-  package { 'libcurl4-openssl-dev':
-    name    => $libcurl_openssl_dev_package,
-    ensure  => $libcurl_openssl_dev_ensure,
-    require => Package['openssh-server'],
+  if ! empty($dev_packages) {
+    package { 'ssh-dev-packages':
+      name    => $dev_packages,
+      ensure  => $dev_ensure,
+      require => Package['ssh'],
+    }
   }
 
-  if $ssh_import_id_package and $ssh_import_id_ensure {
-    package { 'ssh-import-id':
-      name    => $ssh_import_id_package,
-      ensure  => $ssh_import_id_ensure,
-      require => Package['openssh-server'],
+  if ! empty($extra_packages) {
+    package { 'ssh-extra-packages':
+      name    => $extra_packages,
+      ensure  => $extra_ensure,
+      require => Package['ssh'],
     }
   }
 
   #-----------------------------------------------------------------------------
   # Configuration
 
-  if ! ( $sshd_config_file and $init_bin ) {
-    fail('SSH configuration file and init script must be defined')
-  }
-  file { 'sshd-config-file':
+  file { 'ssh-config-file':
     path     => $sshd_config_file,
     owner    => "root",
     group    => "root",
-    mode     => 644,
+    mode     => '0644',
     content  => template($sshd_config_template),
-    require  => Package['openssh-server'],
+    require  => Package['ssh'],
   }
 
   exec { "reload-ssh":
     command     => "${init_bin} reload",
     refreshonly => true,
-    subscribe   => File['sshd-config-file']
+    subscribe   => File['ssh-config-file']
   }
 
   if $configure_firewall == 'true' and $port > 0 {
@@ -103,7 +96,7 @@ class ssh (
       state   => 'NEW',
       proto   => 'tcp',
       dport   => $port,
-      require => Package['openssh-server'],
+      require => Package['ssh'],
     }
   }
 
@@ -114,6 +107,6 @@ class ssh (
     name    => $service,
     ensure  => $service_ensure,
     enable  => true,
-    require => Package['openssh-server'],
+    require => Package['ssh'],
   }
 }
